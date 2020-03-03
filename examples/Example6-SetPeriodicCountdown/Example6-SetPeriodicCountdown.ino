@@ -12,13 +12,13 @@
   Reworked to enable periodic countdown
   By: Marcus Bockting
   Date: 2/18/2020
-  
+
   Changed: serial monitor at 9600 baud
   Changed: F macro
   New: read and print register RV3028_STATUS, RV3028_ID
   New: Alarm message
   New: Option to set time by predefined globals
-  
+
 */
 
 #include "RV-3028-C7.h"
@@ -68,46 +68,57 @@ void setup() {
   }
   else
   {
-    Serial.println(F("RTC online!"));
-    Serial.print(F("HID:"));
-    Serial.println(rtc.readRegister(RV3028_ID) >> 4);
-    Serial.print(F("VID:"));
-    Serial.println(rtc.readRegister(RV3028_ID) & 0b1111);
-    //delay(1000);
+    Serial.println(F("Countdown Starts!"));
+    //page 63
+    //disable TE
+    rtc.enableCountdown(false);
+    //disable TF
+    rtc.clearTimerFlag();
+    //disable TIE
+    rtc.enableTimerInterrupt(false);
 
-    //Enable alarm interrupt
-    rtc.enableAlarmInterrupt(alm_minute, alm_hour, alm_date_or_weekday, alm_isweekday, alm_mode);
-    //rtc.disableAlarmInterrupt();  //Only disables the interrupt (not the alarm flag)
-    Serial.print(F("Status:"));
+    //Single or Repeat Mode TRPT
+    rtc.enableCountdownRepeat(true);
+
+    //Timer Clock Frequency TD
+    rtc.configureTimerFrequency(0);//244,14 micro useconds
+    //rtc.configureTimerFrequency(1);//15,625 milli seconds
+    //rtc.configureTimerFrequency(2);//seconds
+    //rtc.configureTimerFrequency(3);//minutes
+
+    uint16_t duration = 4095;
+    rtc.setCountdownDuration(duration);
+
+    //enable TIE
+    rtc.enableTimerInterrupt(true);
+
+    Serial.print(F("CTRL1:\t"));
+    Serial.println(rtc.readRegister(RV3028_CTRL1), BIN);
+    Serial.print(F("CTRL2:\t"));
+    Serial.println(rtc.readRegister(RV3028_CTRL2), BIN);
+    Serial.print(F("STATUS:\t"));
     Serial.println(rtc.readRegister(RV3028_STATUS), BIN);
+    Serial.print(F("Duration:\t"));
+    Serial.println(rtc.getCountdownDuration());
+    Serial.println();
+
+    //enable countdown
+    rtc.enableCountdown(true);
+    
+    Serial.print(F("CTRL1:\t"));
+    Serial.println(rtc.readRegister(RV3028_CTRL1), BIN);
+    Serial.print(F("CTRL2:\t"));
+    Serial.println(rtc.readRegister(RV3028_CTRL2), BIN);
+    Serial.print(F("STATUS:\t"));
+    Serial.println(rtc.readRegister(RV3028_STATUS), BIN);
+    Serial.println();
   }
 }
 
 void loop() {
 
-  //PRINT TIME
-  if (rtc.updateTime() == false) //Updates the time variables from RTC
-  {
-    Serial.print(F("RTC failed to update"));
-  }
-  else
-  {
-    String currentTime = rtc.stringTimeStamp();
-    //Serial.println(currentTime + "     \'s\' = set compiler time");
-    Serial.print(currentTime);
-    Serial.println(F("\t\'s\' set compile time \'t\' reset"));
-
-    Serial.print(F("Status:\t"));
-    Serial.println(rtc.readRegister(RV3028_STATUS), BIN);
-  }
-
-  //Read Alarm Flag
-  if (rtc.readAlarmInterruptFlag())
-  {
-    Serial.println(F("ALARM!!!!"));
-    delay(5000);
-    rtc.disableAlarmInterrupt();  //Only disables the interrupt (not the alarm flag)
-  }
+  Serial.print(F("Countdown:\t"));
+  Serial.println(rtc.readCountdownCurrent());
 
   //SET Time
   if (Serial.available())
@@ -115,21 +126,24 @@ void loop() {
     switch (Serial.read())
     {
       case 's':
-        //Use the time from the Arduino compiler (build time) to set the RTC
-        //Keep in mind that Arduino does not get the new compiler time every time it compiles. to ensure the proper time is loaded, open up a fresh version of the IDE and load the sketch.
-        if (rtc.setToCompilerTime() == false)
-        {
-          Serial.println(F("Something went wrong setting the time"));
-        }
+        //enable countdown
+        rtc.enableCountdown(true);
         break;
 
-      case 't':
-        //Use this to set the RTC with the predefined global values
-        if (rtc.setTime(sec, minute, hour, day, date, month, year) == false)
-        {
-          Serial.println(F("Something went wrong setting the time"));
-        }
+      case 'x':
+        //disable countdown
+        rtc.enableCountdown(false);
         break;
+
+      case 'r':
+        //Single or Repeat Mode TRPT
+        rtc.enableCountdownRepeat(true);
+        break;
+        
+      case 'p':
+        //Single or Repeat Mode TRPT
+        rtc.enableCountdownRepeat(false);
+      break; 
     }
   }
 }

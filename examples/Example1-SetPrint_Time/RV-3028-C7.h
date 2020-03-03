@@ -15,6 +15,27 @@ This code is released under the [MIT License](http://opensource.org/licenses/MIT
 Please review the LICENSE.md file included with this example. If you have any questions
 or concerns with licensing, please contact constantinkoch@outlook.com.
 Distributed as-is; no warranty is given.
+
+
+  Reworked to enable periodic countdown
+  By: Marcus Bockting
+  Date: 2/18/2020
+  
+  New: set periodic countdown in minutes
+  void enablePeriodicCountdown(uint16_t clocks, uint8_t freq = 3);//0Ah; 0Bh ;0Fh TD = 1 min
+  void disablePeriodicCountdown();
+  uint16_t readCurrentPeriodicCountdown(); //0Ch; 0Dh
+
+  
+  Changed: readStatus() does not delete the status anymore but returns it
+  These changes are not backwards compatible
+  uint8_t readStatus(); //Reads the status register
+  void clearStatus();//clears the status register
+  
+  void clearRegister(uint8_t addr);//clears any register
+
+
+
 ******************************************************************************/
 
 #pragma once
@@ -27,11 +48,8 @@ Distributed as-is; no warranty is given.
 
 #include <Wire.h>
 
-
-
 //The 7-bit I2C ADDRESS of the RV3028
 #define RV3028_ADDR						(uint8_t)0x52
-
 
 //REGISTERS
 //Clock registers
@@ -114,13 +132,13 @@ Distributed as-is; no warranty is given.
 #define STATUS_PORF		0
 
 //Bits in Control1 Register
-#define CTRL1_TRPT		7
+#define CTRL1_TRPT		7//Timer repeat
 #define CTRL1_WADA		5//Bit 6 not implemented
-#define CTRL1_USEL		4
+#define CTRL1_USEL		4//Update Interrupt Select second or minute 
 #define CTRL1_EERD		3
-#define CTRL1_TE		2
-#define	CTRL1_TD1		1
-#define CTRL1_TD0		0
+#define CTRL1_TE		2//Timer enable
+#define	CTRL1_TD1		1//Timer frequency
+#define CTRL1_TD0		0//Timer frequency
 
 //Bits in Control2 Register
 #define CTRL2_TSE		7
@@ -225,10 +243,34 @@ public:
 	void disableTrickleCharge();
 	bool setBackupSwitchoverMode(uint8_t val);
 
+  //New
+  //Enabling
+  void enableCountdown(bool enable);//TE in CTRL1
+  //Repeat or Single Mode
+  void enableCountdownRepeat(bool enable);//TRPT in CTRL1
+  //Timer Interrupt status
+  void clearTimerFlag();  //TF in STATUS 0Eh
+  uint8_t getTimerFlag();  //TF in STATUS 0Eh
 
-	uint8_t status(); //Returns the status byte
-	void clearInterrupts(); 
+  //Timer Interrupt
+  void enableTimerInterrupt(bool enable);  //TIE in CTRL2 0Eh
+    
+  //Duration of Countdown 0Ah, 0Bh
+  void setCountdownDuration(uint16_t duration);
+  uint16_t getCountdownDuration();
+  
+  //Actual value
+  uint16_t readCountdownCurrent(); //0Ch; 0Dh
 
+  //configuration
+  //freq = 3 means 1 minute
+  //0Ah; 0Bh ;0Fh
+  void configureTimerFrequency(uint8_t td);
+  
+  //changed
+	uint8_t readStatus();//Reads the status register
+  void clearStatus();//clears the status register
+  
 	//Values in RTC are stored in Binary Coded Decimal. These functions convert to/from Decimal
 	uint8_t BCDtoDEC(uint8_t val); 
 	uint8_t DECtoBCD(uint8_t val);
