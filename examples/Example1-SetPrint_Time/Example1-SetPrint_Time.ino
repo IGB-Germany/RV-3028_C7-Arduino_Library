@@ -12,13 +12,13 @@
   Reworked to enable periodic countdown
   By: Marcus Bockting
   Date: 2/18/2020
-  
+
   Changed: serial monitor at 9600 baud
   Changed: F macro
   New: read and print register RV3028_STATUS, RV3028_ID
   New: Alarm message
   New: Option to set time by predefined globals
-  
+
 */
 
 #include "RV-3028-C7.h"
@@ -35,11 +35,11 @@ const uint8_t month   = 1;
 const uint16_t year   = 2020;
 
 //The below variables control what the alarm will be set to
-uint8_t alm_minute = 00;
 uint8_t alm_hour = 12;
+uint8_t alm_minute = 43;
 uint8_t alm_date_or_weekday = 2;
 bool alm_isweekday = false;
-uint8_t alm_mode = 4;
+uint8_t alm_mode = 7;
 /*********************************
   Set the alarm mode in the following way:
   0: When minutes, hours and weekday/date match (once per weekday/date)
@@ -53,7 +53,10 @@ uint8_t alm_mode = 4;
 
   If you want to set a weekday alarm (alm_isweekday = true), set 'alm_date_or_weekday' from 0 (Sunday) to 6 (Saturday)
 ********************************/
-void setup() {
+
+
+void setup()
+{
 
   //Standard speed
   Serial.begin(9600);
@@ -73,17 +76,29 @@ void setup() {
     Serial.println(rtc.readRegister(RV3028_ID) >> 4);
     Serial.print(F("VID:"));
     Serial.println(rtc.readRegister(RV3028_ID) & 0b1111);
-    //delay(1000);
 
-    //Enable alarm interrupt
-    rtc.enableAlarmInterrupt(alm_minute, alm_hour, alm_date_or_weekday, alm_isweekday, alm_mode);
-    //rtc.disableAlarmInterrupt();  //Only disables the interrupt (not the alarm flag)
-    Serial.print(F("Status:"));
+    //Enable alarm
+    //rtc.enableAlarmInterrupt(alm_minute, alm_hour, alm_date_or_weekday, alm_isweekday, alm_mode);
+    //rtc.disableAlarmInterrupt();  //disables the interrupt (not the alarm flag)
+    
+    rtc.clearAlarmFlag();
+    rtc.clearWeekdayAlarmFlag();
+    rtc.enableUpdateInterrupt(false);
+    rtc.clearUpdateFlag();
+    rtc.enableTimer(false);
+    rtc.clearStatus();//clears the complete status register
+
+    Serial.print(F("STATUS:\t\t"));
     Serial.println(rtc.readRegister(RV3028_STATUS), BIN);
+    Serial.print(F("CONTROL1:\t"));
+    Serial.println(rtc.readRegister(RV3028_CTRL1), BIN);
+    Serial.print(F("CONTROL2:\t"));
+    Serial.println(rtc.readRegister(RV3028_CTRL2), BIN);
   }
 }
 
-void loop() {
+void loop()
+{
 
   //PRINT TIME
   if (rtc.updateTime() == false) //Updates the time variables from RTC
@@ -92,44 +107,76 @@ void loop() {
   }
   else
   {
+
+    //Serial.print(F("Status:\t\t"));
+    //Serial.println(rtc.readRegister(RV3028_STATUS), BIN);
+    /*
+        if (rtc.getUpdateFlag())
+        {
+           Serial.println(F("clearUpdateFlag"));
+          rtc.clearUpdateFlag();
+        }
+    */
     String currentTime = rtc.stringTimeStamp();
-    //Serial.println(currentTime + "     \'s\' = set compiler time");
-    Serial.print(currentTime);
-    Serial.println(F("\t\'s\' set compile time \'t\' reset"));
+    static String previousTime = currentTime;
 
-    Serial.print(F("Status:\t"));
-    Serial.println(rtc.readRegister(RV3028_STATUS), BIN);
-  }
-
-  //Read Alarm Flag
-  if (rtc.readAlarmInterruptFlag())
-  {
-    Serial.println(F("ALARM!!!!"));
-    delay(5000);
-    rtc.disableAlarmInterrupt();  //Only disables the interrupt (not the alarm flag)
-  }
-
-  //SET Time
-  if (Serial.available())
-  {
-    switch (Serial.read())
+    //print only every second
+    if (currentTime != previousTime)
     {
-      case 's':
-        //Use the time from the Arduino compiler (build time) to set the RTC
-        //Keep in mind that Arduino does not get the new compiler time every time it compiles. to ensure the proper time is loaded, open up a fresh version of the IDE and load the sketch.
-        if (rtc.setToCompilerTime() == false)
-        {
-          Serial.println(F("Something went wrong setting the time"));
-        }
-        break;
+      //Serial.println(currentTime + "     \'s\' = set compiler time");
+      Serial.print(currentTime);
+      Serial.println(F("\t\'s\' set compile time \'t\' set preset time"));
 
-      case 't':
-        //Use this to set the RTC with the predefined global values
-        if (rtc.setTime(sec, minute, hour, day, date, month, year) == false)
-        {
-          Serial.println(F("Something went wrong setting the time"));
-        }
-        break;
+      Serial.print(F("STATUS:\t\t"));
+      Serial.println(rtc.readRegister(RV3028_STATUS), BIN);
+      Serial.print(F("CONTROL1:\t"));
+      Serial.println(rtc.readRegister(RV3028_CTRL1), BIN);
+      Serial.print(F("CONTROL2:\t"));
+      Serial.println(rtc.readRegister(RV3028_CTRL2), BIN);
+      //Save last time
+      previousTime = currentTime;
     }
   }
+  /*
+    //Read Alarm Flag
+    if (rtc.readAlarmFlag())
+    {
+      Serial.println(F("ALARM!!!!"));
+      Serial.print(F("Status:\t"));
+      Serial.println(rtc.readRegister(RV3028_STATUS), BIN);
+      delay(5000);
+      rtc.disableAlarmInterrupt();  //Only disables the interrupt
+      rtc.clearAlarmFlag();         //disables the alarm flag
+      Serial.print(F("Status:\t"));
+      Serial.println(rtc.readRegister(RV3028_STATUS), BIN);
+    }
+  */
+
+
+    //SET Time
+    if (Serial.available())
+    {
+      switch (Serial.read())
+      {
+        case 's':
+          //Use the time from the Arduino compiler (build time) to set the RTC
+          //Keep in mind that Arduino does not get the new compiler time every time it compiles.
+          //to ensure the proper time is loaded, open up a fresh version of the IDE and load the sketch.
+          if (rtc.setToCompilerTime() == false)
+          {
+            Serial.println(F("Something went wrong setting the time"));
+          }
+          break;
+
+        case 't':
+          //Use this to set the RTC with the predefined global values
+          if (rtc.setTime(sec, minute, hour, day, date, month, year) == false)
+          {
+            Serial.println(F("Something went wrong setting the time"));
+          }
+          break;
+      }
+    }
+
+
 }

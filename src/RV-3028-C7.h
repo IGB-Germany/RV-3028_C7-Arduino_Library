@@ -1,40 +1,37 @@
 /******************************************************************************
-RV-3028-C7.h
-RV-3028-C7 Arduino Library
-Constantin Koch
-July 25, 2019
-https://github.com/constiko/RV-3028_C7-Arduino_Library
+  RV-3028-C7.h
+  RV-3028-C7 Arduino Library
+  Constantin Koch
+  July 25, 2019
+  https://github.com/constiko/RV-3028_C7-Arduino_Library
 
-Resources:
-Uses Wire.h for I2C operation
+  Resources:
+  Uses Wire.h for I2C operation
 
-Development environment specifics:
-Arduino IDE 1.8.9
+  Development environment specifics:
+  Arduino IDE 1.8.9
 
-This code is released under the [MIT License](http://opensource.org/licenses/MIT).
-Please review the LICENSE.md file included with this example. If you have any questions
-or concerns with licensing, please contact constantinkoch@outlook.com.
-Distributed as-is; no warranty is given.
+  This code is released under the [MIT License](http://opensource.org/licenses/MIT).
+  Please review the LICENSE.md file included with this example. If you have any questions
+  or concerns with licensing, please contact constantinkoch@outlook.com.
+  Distributed as-is; no warranty is given.
 
 
   Reworked to enable periodic countdown
   By: Marcus Bockting
   Date: 2/18/2020
-  
-  New: set periodic countdown in minutes
-  void enablePeriodicCountdown(uint16_t clocks, uint8_t freq = 3);//0Ah; 0Bh ;0Fh TD = 1 min
-  void disablePeriodicCountdown();
-  uint16_t readCurrentPeriodicCountdown(); //0Ch; 0Dh
 
-  
+  New: set periodic timer (countdown)
+  void enableTimer(true) //Enable
+  uint16_t  getTimerCurrent() //Actual value of countdown
+  and some help functions..
+
   Changed: readStatus() does not delete the status anymore but returns it
   These changes are not backwards compatible
   uint8_t readStatus(); //Reads the status register
   void clearStatus();//clears the status register
-  
+
   void clearRegister(uint8_t addr);//clears any register
-
-
 
 ******************************************************************************/
 
@@ -132,11 +129,12 @@ Distributed as-is; no warranty is given.
 #define STATUS_PORF		0
 
 //Bits in Control1 Register
-#define CTRL1_TRPT		7//Timer repeat
-#define CTRL1_WADA		5//Bit 6 not implemented
-#define CTRL1_USEL		4//Update Interrupt Select second or minute 
-#define CTRL1_EERD		3
-#define CTRL1_TE		2//Timer enable
+#define CTRL1_TRPT  7//Timer repeat
+//Bit 6 not implemented
+#define CTRL1_WADA  5//Weekday Alarm / Date Alarm selection bit
+#define CTRL1_USEL  4//Update Interrupt Select second or minute 
+#define CTRL1_EERD  3//EEPROM Memory Refresh Disable bit
+#define CTRL1_TE    2//Timer enable
 #define	CTRL1_TD1		1//Timer frequency
 #define CTRL1_TD0		0//Timer frequency
 
@@ -181,112 +179,114 @@ Distributed as-is; no warranty is given.
 
 #define TIME_ARRAY_LENGTH 7 // Total number of writable values in device
 
-enum time_order {		
-	TIME_SECONDS,    // 0
-	TIME_MINUTES,    // 1
-	TIME_HOURS,      // 2
-	TIME_WEEKDAY,    // 3
-	TIME_DATE,       // 4
-	TIME_MONTH,      // 5
-	TIME_YEAR,       // 6
+enum time_order {
+  TIME_SECONDS,    // 0
+  TIME_MINUTES,    // 1
+  TIME_HOURS,      // 2
+  TIME_WEEKDAY,    // 3
+  TIME_DATE,       // 4
+  TIME_MONTH,      // 5
+  TIME_YEAR,       // 6
 };
 
 class RV3028
 {
-public:
+  public:
 
-	RV3028(void);
+    RV3028(void);
 
-	boolean begin(TwoWire &wirePort = Wire);
+    boolean begin(TwoWire &wirePort = Wire);
 
-	bool setTime(uint8_t sec, uint8_t min, uint8_t hour, uint8_t weekday, uint8_t date, uint8_t month, uint16_t year);
-	bool setTime(uint8_t * time, uint8_t len);
-	bool setSeconds(uint8_t value);
-	bool setMinutes(uint8_t value);
-	bool setHours(uint8_t value);
-	bool setWeekday(uint8_t value);
-	bool setDate(uint8_t value);
-	bool setMonth(uint8_t value);
-	bool setYear(uint16_t value);
-	bool setToCompilerTime(); //Uses the hours, mins, etc from compile time to set RTC
+    bool setTime(uint8_t sec, uint8_t min, uint8_t hour, uint8_t weekday, uint8_t date, uint8_t month, uint16_t year);
+    bool setTime(uint8_t * time, uint8_t len);
+    bool setSeconds(uint8_t value);
+    bool setMinutes(uint8_t value);
+    bool setHours(uint8_t value);
+    bool setWeekday(uint8_t value);
+    bool setDate(uint8_t value);
+    bool setMonth(uint8_t value);
+    bool setYear(uint16_t value);
+    bool setToCompilerTime(); //Uses the hours, mins, etc from compile time to set RTC
 
-	bool updateTime(); //Update the local array with the RTC registers
+    bool updateTime(); //Update the local array with the RTC registers
 
-	char* stringDateUSA(); //Return date in mm-dd-yyyy
-	char* stringDate(); //Return date in dd-mm-yyyy
-	char* stringTime(); //Return time hh:mm:ss with AM/PM if in 12 hour mode
-	char* stringTimeStamp(); //Return timeStamp in ISO 8601 format yyyy-mm-ddThh:mm:ss
+    char* stringDateUSA(); //Return date in mm-dd-yyyy
+    char* stringDate(); //Return date in dd-mm-yyyy
+    char* stringTime(); //Return time hh:mm:ss with AM/PM if in 12 hour mode
+    char* stringTimeStamp(); //Return timeStamp in ISO 8601 format yyyy-mm-ddThh:mm:ss
 
-	uint8_t getSeconds();
-	uint8_t getMinutes();
-	uint8_t getHours();
-	uint8_t getWeekday();
-	uint8_t getDate();
-	uint8_t getMonth();
-	uint16_t getYear();	
+    uint8_t getSeconds();
+    uint8_t getMinutes();
+    uint8_t getHours();
+    uint8_t getWeekday();
+    uint8_t getDate();
+    uint8_t getMonth();
+    uint16_t getYear();
 
 
-	bool is12Hour(); //Returns true if 12hour bit is set
-	bool isPM(); //Returns true if is12Hour and PM bit is set
-	void set12Hour();
-	void set24Hour();
+    bool is12Hour(); //Returns true if 12hour bit is set
+    bool isPM(); //Returns true if is12Hour and PM bit is set
+    void set12Hour();
+    void set24Hour();
 
-	bool setUNIX(uint32_t value);//Set the UNIX Time (Real Time and UNIX Time are INDEPENDENT!)
-	uint32_t getUNIX();
+    bool setUNIX(uint32_t value);//Set the UNIX Time (Real Time and UNIX Time are INDEPENDENT!)
+    uint32_t getUNIX();
 
-	void enableAlarmInterrupt(uint8_t min, uint8_t hour, uint8_t date_or_weekday, bool setWeekdayAlarm_not_Date, uint8_t mode);
-	void enableAlarmInterrupt();
-	void disableAlarmInterrupt();
-	bool readAlarmInterruptFlag();
+    void enableAlarmInterrupt(uint8_t min, uint8_t hour, uint8_t date_or_weekday, bool setWeekdayAlarm_not_Date, uint8_t mode);
 
-	void enableTrickleCharge(uint8_t tcr = TCR_11K); //Trickle Charge Resistor default 11k
-	void disableTrickleCharge();
-	bool setBackupSwitchoverMode(uint8_t val);
+    uint8_t readAlarmFlag();
+    void clearAlarmFlag();
 
-  //New
-  //Enabling
-  void enableCountdown(bool enable);//TE in CTRL1
-  //Repeat or Single Mode
-  void enableCountdownRepeat(bool enable);//TRPT in CTRL1
-  //Timer Interrupt status
-  void clearTimerFlag();  //TF in STATUS 0Eh
-  uint8_t getTimerFlag();  //TF in STATUS 0Eh
+    uint8_t readWeekdayAlarmFlag();
+    void clearWeekdayAlarmFlag();
 
-  //Timer Interrupt
-  void enableTimerInterrupt(bool enable);  //TIE in CTRL2 0Eh
-    
-  //Duration of Countdown 0Ah, 0Bh
-  void setCountdownDuration(uint16_t duration);
-  uint16_t getCountdownDuration();
-  
-  //Actual value
-  uint16_t readCountdownCurrent(); //0Ch; 0Dh
+    void enableTrickleCharge(uint8_t tcr = TCR_11K); //Trickle Charge Resistor default 11k
+    void disableTrickleCharge();
+    bool setBackupSwitchoverMode(uint8_t val);
 
-  //configuration
-  //freq = 3 means 1 minute
-  //0Ah; 0Bh ;0Fh
-  void configureTimerFrequency(uint8_t td);
-  
-  //changed
-	uint8_t readStatus();//Reads the status register
-  void clearStatus();//clears the status register
-  
-	//Values in RTC are stored in Binary Coded Decimal. These functions convert to/from Decimal
-	uint8_t BCDtoDEC(uint8_t val); 
-	uint8_t DECtoBCD(uint8_t val);
+    //changed
+    uint8_t readStatus();//Reads the complete status register
+    void clearStatus();//clears the complete status register
 
-	uint8_t readRegister(uint8_t addr);
-	bool writeRegister(uint8_t addr, uint8_t val);
-	bool readMultipleRegisters(uint8_t addr, uint8_t * dest, uint8_t len);
-	bool writeMultipleRegisters(uint8_t addr, uint8_t * values, uint8_t len);
+    void enableAlarmInterrupt(bool enable);//AIE in CTRL2
 
-	bool writeConfigEEPROM_RAMmirror(uint8_t eepromaddr, uint8_t val);
-	uint8_t readConfigEEPROM_RAMmirror(uint8_t eepromaddr);
-	bool waitforEEPROM();
+    //New
+    //PERIODIC TIMER/COUNTDOWN
+    void      enableTimer(bool enable);//TE in CTRL1
+    void      enableTimerRepeat(bool enable);//TRPT in CTRL1
 
-private:	
-	uint8_t _time[TIME_ARRAY_LENGTH];
-	TwoWire *_i2cPort;
+    void      clearTimerFlag();  //Clear Timer Flag TF in STATUS 0Eh
+    uint8_t   getTimerFlag(); //Get Timer Flag TF in STATUS 0Eh
+    void      clearUpdateFlag();//Update Flag UF in STATUS 0Eh
+    uint8_t   getUpdateFlag(); //Update Flag UF in STATUS 0Eh
+
+    void      enableTimerInterrupt(bool enable); //Timer Interrupt Enable TIE in CTRL2 0Eh
+
+    void      setTimerDuration(uint16_t duration); //Set duration of countdown 0Ah, 0Bh
+    uint16_t  getTimerDuration();//get duration of countdown
+    uint16_t  getTimerCurrent();//Actual value of countdown 0Ch; 0Dh
+    void      configureTimerFrequency(uint8_t td); //configuration freq = 3 means 1 minute in 0Ah; 0Bh ;0Fh
+
+    void    enableUpdateInterrupt(bool enable);//UIE in CTRL2
+    void    enableClockUpdateInterrupt(bool enable);//CUIE in Clock Interrupt Mask 12h
+
+
+    //Values in RTC are stored in Binary Coded Decimal. These functions convert to/from Decimal
+    uint8_t BCDtoDEC(uint8_t val);
+    uint8_t DECtoBCD(uint8_t val);
+
+    uint8_t readRegister(uint8_t addr);
+    bool writeRegister(uint8_t addr, uint8_t val);
+    bool readMultipleRegisters(uint8_t addr, uint8_t * dest, uint8_t len);
+    bool writeMultipleRegisters(uint8_t addr, uint8_t * values, uint8_t len);
+
+    bool writeConfigEEPROM_RAMmirror(uint8_t eepromaddr, uint8_t val);
+    uint8_t readConfigEEPROM_RAMmirror(uint8_t eepromaddr);
+    bool waitforEEPROM();
+
+  private:
+    uint8_t _time[TIME_ARRAY_LENGTH];
+    TwoWire *_i2cPort;
 };
 
 //POSSIBLE ENHANCEMENTS :

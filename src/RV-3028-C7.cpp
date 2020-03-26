@@ -425,10 +425,13 @@ uint32_t RV3028::getUNIX()
 void RV3028::enableAlarmInterrupt(uint8_t min, uint8_t hour, uint8_t date_or_weekday, bool setWeekdayAlarm_not_Date, uint8_t mode)
 {
   //disable Alarm Interrupt to prevent accidental interrupts during configuration
-  disableAlarmInterrupt(); clearStatus();
+  enableAlarmInterrupt(false);
+  //clearStatus();
+  clearAlarmFlag();
 
   //ENHANCEMENT: Add Alarm in 12 hour mode
   set24Hour();
+  
   //Set WADA bit (Weekday/Date Alarm)
   uint8_t value = readRegister(RV3028_CTRL1);
   if (setWeekdayAlarm_not_Date)
@@ -442,6 +445,7 @@ void RV3028::enableAlarmInterrupt(uint8_t min, uint8_t hour, uint8_t date_or_wee
   alarmTime[0] = DECtoBCD(min);				//minutes
   alarmTime[1] = DECtoBCD(hour);				//hours
   alarmTime[2] = DECtoBCD(date_or_weekday);	//date or weekday
+  
   //shift alarm enable bits
   if (mode > 0b111) mode = 0b111; //0 to 7 is valid
   if (mode & 0b001)
@@ -454,28 +458,44 @@ void RV3028::enableAlarmInterrupt(uint8_t min, uint8_t hour, uint8_t date_or_wee
   writeMultipleRegisters(RV3028_MINUTES_ALM, alarmTime, 3);
 
   //enable Alarm Interrupt
-  enableAlarmInterrupt();
+  enableAlarmInterrupt(true);
 }
 
-void RV3028::enableAlarmInterrupt()
+//Alarm Interrupt Enable AIE
+void RV3028::enableAlarmInterrupt(bool enable)
 {
-  uint8_t value = readRegister(RV3028_CTRL2);
-  value |= (1 << CTRL2_AIE); //Set the interrupt enable bit
-  writeRegister(RV3028_CTRL2, value);
+ //change only AIE in CTRL2
+  uint8_t reg = readRegister(RV3028_CTRL2);
+  if (enable)
+    writeRegister(RV3028_CTRL2, reg | 0b00001000);//set bit 4
+      //reg |= (1 << CTRL2_AIE);
+  else
+    writeRegister(RV3028_CTRL2, reg & 0b11110111);//unset bit 4
 }
 
-//Only disables the interrupt (not the alarm flag)
-void RV3028::disableAlarmInterrupt()
-{
-  uint8_t value = readRegister(RV3028_CTRL2);
-  value &= ~(1 << CTRL2_AIE); //Clear the interrupt enable bit
-  writeRegister(RV3028_CTRL2, value);
-}
-
-bool RV3028::readAlarmInterruptFlag()
+uint8_t RV3028::readAlarmFlag()
 {
   uint8_t stat = readStatus();
   return (stat & (1 << STATUS_AF));
+}
+
+void RV3028::clearAlarmFlag()
+{
+  //change only AF in STATUS
+  uint8_t reg = readRegister(RV3028_STATUS);
+  writeRegister(RV3028_STATUS, reg & 0b11111011);
+}
+
+uint8_t RV3028::readWeekdayAlarmFlag()
+{
+  uint8_t reg = readRegister(RV3028_CTRL1);
+  return (reg & (1 << CTRL1_WADA)); 
+}
+void RV3028::clearWeekdayAlarmFlag()
+{
+  //change only TF in STATUS
+  uint8_t reg = readRegister(RV3028_CTRL1);
+  writeRegister(RV3028_CTRL1, reg & 0b11011111);//unset bit 6
 }
 
 /*********************************
@@ -550,7 +570,7 @@ void RV3028::clearStatus()
   writeRegister(RV3028_STATUS, 0);
 }
 
-void RV3028::enableCountdown(bool enable)
+void RV3028::enableTimer(bool enable)
 {
   //change only TE in CTRL1
   uint8_t reg = readRegister(RV3028_CTRL1);
@@ -560,7 +580,7 @@ void RV3028::enableCountdown(bool enable)
     writeRegister(RV3028_CTRL1, reg & 0b11111011);//unset bit 3
 }
 
-void RV3028::enableCountdownRepeat(bool enable)
+void RV3028::enableTimerRepeat(bool enable)
 {
   //change only TRPT in CTRL1
   uint8_t reg = readRegister(RV3028_CTRL1);
@@ -577,29 +597,29 @@ void RV3028::clearTimerFlag()
   writeRegister(RV3028_STATUS, reg & 0b11110111);
 }
 
-//Timer Interrupt
+//TIE Timer Interrupt Enable
 void RV3028::enableTimerInterrupt(bool enable)
 {
   //change only TIE in CTRL2
   uint8_t reg = readRegister(RV3028_CTRL2);
   if (enable)
-    writeRegister(RV3028_CTRL2, reg | 0b00001000);
+    writeRegister(RV3028_CTRL2, reg | 0b00010000);//set bit 5
   else
-    writeRegister(RV3028_CTRL2, reg & 0b11110111);
+    writeRegister(RV3028_CTRL2, reg & 0b11101111);//unset bit 5
 }
 
-void RV3028::setCountdownDuration(uint16_t duration)
+void RV3028::setTimerDuration(uint16_t duration)
 {
   writeRegister(RV3028_TIMERVAL_0, duration & 0xFF);  //0Ah
   writeRegister(RV3028_TIMERVAL_1, duration >> 8); //0Bh
 }
 
-uint16_t RV3028::getCountdownDuration()
+uint16_t RV3028::getTimerDuration()
 {
   return readRegister(RV3028_TIMERVAL_0) | (uint16_t) readRegister(RV3028_TIMERVAL_1) << 8;
 }
 
-uint16_t RV3028::readCountdownCurrent()
+uint16_t RV3028::getTimerCurrent()
 {
   //Countdown Period = Timer Value/Timer Clock Frequency
   uint16_t current;
@@ -630,13 +650,48 @@ void RV3028::configureTimerFrequency(uint8_t td)
   if (td == 3)
     reg =  reg | 0b00000011;
 
-  Serial.print(F("td:\t"));
+  Serial.print(F("TD:\t"));
   Serial.println(td, BIN);
   Serial.print(F("reg&td:\t"));
   Serial.println(reg, BIN);
-  
+
   writeRegister(RV3028_CTRL1, reg);
 
+}
+
+//PERIODIC TIME UPDATE INTERRUPT FUNCTION
+
+void RV3028::enableUpdateInterrupt(bool enable)
+{
+  //change only UIE in CTRL2
+  uint8_t reg = readRegister(RV3028_CTRL2);
+  if (enable)
+    writeRegister(RV3028_CTRL2, reg | 0b00100000);//set bit 6
+  else
+    writeRegister(RV3028_CTRL2, reg & 0b11011111);//unset bit 6
+}
+
+void RV3028::enableClockUpdateInterrupt(bool enable)
+{
+  //change only CUIE in RV3028_INT_MASK
+  uint8_t reg = readRegister(RV3028_INT_MASK);
+  if (enable)
+    writeRegister(RV3028_INT_MASK, reg | 0b00000001);//set bit 0
+  else
+    writeRegister(RV3028_INT_MASK, reg & 0b11111110);//unset bit 0
+}
+
+void RV3028::clearUpdateFlag()
+{
+  //change only UF in STATUS
+  uint8_t reg = readRegister(RV3028_STATUS);
+  writeRegister(RV3028_STATUS, reg & 0b11101111);//unset bit 5
+}
+
+uint8_t RV3028::getUpdateFlag()
+{
+  uint8_t stat = readStatus();
+  return (stat & (1 << STATUS_UF));
 }
 
 uint8_t RV3028::BCDtoDEC(uint8_t val)
@@ -660,7 +715,6 @@ uint8_t RV3028::readRegister(uint8_t addr)
   if (_i2cPort->available()) {
     uint8_t zws = _i2cPort->read();
 
-
     //clear status register when it was read
     //changed to not clear status register when it was read
     //new function clearStatus
@@ -669,7 +723,8 @@ uint8_t RV3028::readRegister(uint8_t addr)
 
     return zws;
   }
-  else {
+  else
+  {
     return (0xFF); //Error
   }
 }

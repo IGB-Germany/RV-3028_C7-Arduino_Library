@@ -12,7 +12,7 @@
   Open the serial monitor at 115200 baud.
 */
 
-#include <RV-3028-C7.h>
+#include "RV-3028-C7.h"
 
 RV3028 rtc;
 
@@ -21,7 +21,7 @@ uint32_t UNIX = 1234567890;
 
 void setup() {
 
-  Serial.begin(115200);
+  Serial.begin(9600);
   while (!Serial);
   Serial.println("Read/Write UNIX Time - RTC Example");
 

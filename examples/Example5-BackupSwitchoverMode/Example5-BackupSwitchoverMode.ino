@@ -11,7 +11,7 @@
   Open the serial monitor at 115200 baud.
 */
 
-#include <RV-3028-C7.h>
+#include "RV-3028-C7.h"
 
 RV3028 rtc;
 

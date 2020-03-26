@@ -71,26 +71,25 @@ void setup() {
     Serial.println(F("Countdown Starts!"));
     //page 63
     //disable TE
-    rtc.enableCountdown(false);
+    rtc.enableTimer(false);
     //disable TF
     rtc.clearTimerFlag();
     //disable TIE
     rtc.enableTimerInterrupt(false);
-
-    //Single or Repeat Mode TRPT
-    rtc.enableCountdownRepeat(true);
+    //disable AIE
+    rtc.enableAlarmInterrupt(false);
+    //disable TRPT
+    rtc.enableTimerRepeat(false);
 
     //Timer Clock Frequency TD
-    rtc.configureTimerFrequency(0);//244,14 micro useconds
-    //rtc.configureTimerFrequency(1);//15,625 milli seconds
+    //rtc.configureTimerFrequency(0);//244,14 micro useconds
+    rtc.configureTimerFrequency(1);//15,625 milli seconds
     //rtc.configureTimerFrequency(2);//seconds
     //rtc.configureTimerFrequency(3);//minutes
 
-    uint16_t duration = 4095;
-    rtc.setCountdownDuration(duration);
-
-    //enable TIE
-    rtc.enableTimerInterrupt(true);
+    //uint16_t duration = 4095;//0
+    uint16_t duration = 50;//1
+    rtc.setTimerDuration(duration);
 
     Serial.print(F("CTRL1:\t"));
     Serial.println(rtc.readRegister(RV3028_CTRL1), BIN);
@@ -99,12 +98,15 @@ void setup() {
     Serial.print(F("STATUS:\t"));
     Serial.println(rtc.readRegister(RV3028_STATUS), BIN);
     Serial.print(F("Duration:\t"));
-    Serial.println(rtc.getCountdownDuration());
+    Serial.println(rtc.getTimerDuration());
     Serial.println();
 
-    //enable countdown
-    rtc.enableCountdown(true);
+    //enable TE
+    rtc.enableTimer(true);
+    //enable TIE
+    rtc.enableTimerInterrupt(true);
     
+
     Serial.print(F("CTRL1:\t"));
     Serial.println(rtc.readRegister(RV3028_CTRL1), BIN);
     Serial.print(F("CTRL2:\t"));
@@ -118,32 +120,32 @@ void setup() {
 void loop() {
 
   Serial.print(F("Countdown:\t"));
-  Serial.println(rtc.readCountdownCurrent());
+  Serial.println(rtc.getTimerCurrent());
 
-  //SET Time
+  //countdown
   if (Serial.available())
   {
     switch (Serial.read())
     {
-      case 's':
+      case 'w':
         //enable countdown
-        rtc.enableCountdown(true);
+        rtc.enableTimer(true);
         break;
 
-      case 'x':
+      case 's':
         //disable countdown
-        rtc.enableCountdown(false);
+        rtc.enableTimer(false);
         break;
 
-      case 'r':
-        //Single or Repeat Mode TRPT
-        rtc.enableCountdownRepeat(true);
+      case 'd':
+        //Repeat Mode TRPT
+        rtc.enableTimerRepeat(true);
         break;
-        
-      case 'p':
-        //Single or Repeat Mode TRPT
-        rtc.enableCountdownRepeat(false);
-      break; 
+
+      case 'a':
+        //Single Mode TRPT
+        rtc.enableTimerRepeat(false);
+        break;
     }
   }
 }

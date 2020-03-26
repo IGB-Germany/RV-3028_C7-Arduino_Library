@@ -11,7 +11,7 @@
   Open the serial monitor at 115200 baud
 */
 
-#include <RV-3028-C7.h>
+#include "RV-3028-C7.h"
 
 RV3028 rtc;
 
@@ -44,7 +44,7 @@ uint8_t alm_mode = 0;
 ********************************/
 void setup() {
 
-  Serial.begin(115200);
+  Serial.begin(9600);
   while (!Serial);
   Serial.println("Read/Write Time - RTC Example");
 
@@ -57,9 +57,9 @@ void setup() {
     Serial.println("RTC online!");
   delay(1000);
 
-  //Enable alarm interrupt
+  //Enable alarm
   rtc.enableAlarmInterrupt(alm_minute, alm_hour, alm_date_or_weekday, alm_isweekday, alm_mode);
-  //rtc.disableAlarmInterrupt();  //Only disables the interrupt (not the alarm flag)
+  //rtc.disableAlarmInterrupt();  //Only disables alarm (not the alarm flag)
 }
 
 void loop() {
@@ -74,7 +74,7 @@ void loop() {
   }
   
   //Read Alarm Flag
-  if (rtc.readAlarmInterruptFlag()) {
+  if (rtc.readAlarmFlag()) {
     Serial.println("ALARM!!!!");
     delay(3000);
   }
