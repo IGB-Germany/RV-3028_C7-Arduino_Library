@@ -28,22 +28,27 @@ void setup() {
   }
   else
     Serial.println("RTC online!");
+  
   Serial.println();
+  Serial.print(F("EEPROM Backup:\t"));
+  Serial.println(rtc.readRegister(EEPROM_Backup_Register), BIN);
 
-  //Trickle Charger
-  Serial.print("Config EEPROM 0x37 before: ");
-  Serial.println(rtc.readConfigEEPROM_RAMmirror(0x37));
+  rtc.enableBackupSwitchoverInterrupt(false);//No interrupt signal is generated when Backup Switchover occurs
+  rtc.enableTrickleCharge(true);   //Trickle Charger enabled resistor default 3k
+  //rtc.setTrickleChargeResistor(TCR_5K); //series resistor 5kOhm
+  rtc.setTrickleChargeResistor(TCR_9K); //series resistor 9kOhm
+  //rtc.setTrickleChargeResistor(TCR_15K); //series resistor 15kOhm
+  rtc.setBackupSwitchoverMode(BSM_DISABLED); //Backup Switchover disabled
+  
+  Serial.print(F("EEPROM Backup:\t"));
+  Serial.println(rtc.readRegister(EEPROM_Backup_Register), BIN);
 
-  rtc.enableTrickleCharge(0);   //series resistor 1kOhm
-  //rtc.enableTrickleCharge(1); //series resistor 3kOhm
-  //rtc.enableTrickleCharge(2); //series resistor 6kOhm
-  //rtc.enableTrickleCharge(3); //series resistor 11kOhm
-  //rtc.disableTrickleCharge(); //Trickle Charger disabled
-
-  Serial.print("Config EEPROM 0x37 after: ");
-  Serial.println(rtc.readConfigEEPROM_RAMmirror(0x37));
-
-  //For more information see https://www.microcrystal.com/fileadmin/Media/Products/RTC/App.Manual/RV-3028-C7_App-Manual.pdf#page=46
+  rtc.enableBackupSwitchoverInterrupt(true);//interrupt signal is generated when Backup Switchover occurs
+  rtc.enableTrickleCharge(false); //Trickle Charger disabled
+  rtc.setBackupSwitchoverMode(BSM_LEVEL);//Backup Switchover enabled
+  
+  Serial.print(F("EEPROM Backup:\t"));
+  Serial.println(rtc.readRegister(EEPROM_Backup_Register), BIN);
 }
 
 void loop() {

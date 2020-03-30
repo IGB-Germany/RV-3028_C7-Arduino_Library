@@ -118,7 +118,7 @@
 
 //BITS IN IMPORTANT REGISTERS
 
-//Bits in Status Register
+//Bits in STATUS Register
 #define STATUS_EEBUSY	7
 #define STATUS_CLKF		6
 #define STATUS_BSF		5
@@ -128,7 +128,7 @@
 #define STATUS_EVF		1
 #define STATUS_PORF		0
 
-//Bits in Control1 Register
+//Bits in CONTROL1 Register
 #define CTRL1_TRPT  7//Timer repeat
 //Bit 6 not implemented
 #define CTRL1_WADA  5//Weekday Alarm / Date Alarm selection bit
@@ -156,25 +156,35 @@
 #define HOURSALM_AE_H		7
 #define DATE_AE_WD			7
 
-//Commands for EEPROM Command Register (0x27)
+//Commands for EEPROM Command Register 0x27
 #define EEPROMCMD_First					0x00
 #define EEPROMCMD_Update				0x11
 #define EEPROMCMD_Refresh				0x12
 #define EEPROMCMD_WriteSingle			0x21
 #define EEPROMCMD_ReadSingle			0x22
 
-//Bits in EEPROM Backup Register
-#define EEPROMBackup_TCE_BIT			5				//Trickle Charge Enable Bit
-#define EEPROMBackup_FEDE_BIT			4				//Fast Edge Detection Enable Bit (for Backup Switchover Mode)
-#define EEPROMBackup_BSM_SHIFT			2				//Backup Switchover Mode shift
-#define EEPROMBackup_TCR_SHIFT			0				//Trickle Charge Resistor shift
+//Bits in EEPROM Backup Register 0x37
+#define EEPROMBackup_EEOFFSET     7       //LSB of the EEOffset value
+#define EEPROMBackup_BSIE         6       //Backup Switchover Interrupt Enable bit
+#define EEPROMBackup_TCE    			5				//Trickle Charge Enable Bit
+#define EEPROMBackup_FEDE   			4				//Fast Edge Detection Enable Bit (for Backup Switchover Mode)
+#define EEPROMBackup_BSM_SHIFT		2				//Backup Switchover Mode shift
+#define EEPROMBackup_TCR_SHIFT		0				//Trickle Charge Resistor shift
 
 #define EEPROMBackup_BSM_CLEAR			0b11110011		//Backup Switchover Mode clear
 #define EEPROMBackup_TCR_CLEAR			0b11111100		//Trickle Charge Resistor clear
-#define	TCR_1K							0b00			//Trickle Charge Resistor 1kOhm
-#define	TCR_3K							0b01			//Trickle Charge Resistor 3kOhm
-#define	TCR_6K							0b10			//Trickle Charge Resistor 6kOhm
-#define	TCR_11K							0b11			//Trickle Charge Resistor 11kOhm
+
+//TCR Trickle Charge Resistor
+#define	TCR_3K							0b00			//Trickle Charge Resistor 3kOhm default
+#define	TCR_5K							0b01			//Trickle Charge Resistor 5kOhm
+#define	TCR_9K							0b10			//Trickle Charge Resistor 9kOhm
+#define	TCR_15K							0b11			//Trickle Charge Resistor 15kOhm
+
+//BSM Backup Switch Over Mode
+#define  BSM_DISABLED             0b00      //0 = Switchover disabled
+#define  BSM_DIRECT               0b01      //1 = Direct Switching Mode
+#define  BSM_DISABLED2            0b10      //2 = Switchover disabled
+#define  BSM_LEVEL                0b11      //3 = Level Switching Mode 
 
 
 #define TIME_ARRAY_LENGTH 7 // Total number of writable values in device
@@ -240,10 +250,13 @@ class RV3028
     uint8_t readWeekdayAlarmFlag();
     void clearWeekdayAlarmFlag();
 
-    void enableTrickleCharge(uint8_t tcr = TCR_11K); //Trickle Charge Resistor default 11k
-    void disableTrickleCharge();
-    bool setBackupSwitchoverMode(uint8_t val);
+    //changed
+    void enableTrickleCharge(bool enable); //TCE in EEPROM BCKUP; default diabled
+    void setTrickleChargeResistor(uint8_t tcr = TCR_3K);//default 3k
 
+    bool setBackupSwitchoverMode(uint8_t mode);
+    void enableBackupSwitchoverInterrupt(bool enable);//BSIE in EEPROM_BACKUP
+    
     //changed
     uint8_t readStatus();//Reads the complete status register
     void clearStatus();//clears the complete status register

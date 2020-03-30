@@ -78,8 +78,10 @@ boolean RV3028::begin(TwoWire &wirePort)
   //_i2cPort->begin();
   _i2cPort = &wirePort;
 
-  set24Hour(); delay(1);
-  disableTrickleCharge(); delay(1);
+  set24Hour();
+  delay(1);
+  enableTrickleCharge(false);
+  delay(1);
 
   return (setBackupSwitchoverMode(3) && writeRegister(RV3028_STATUS, 0x00));
 }
@@ -431,7 +433,7 @@ void RV3028::enableAlarmInterrupt(uint8_t min, uint8_t hour, uint8_t date_or_wee
 
   //ENHANCEMENT: Add Alarm in 12 hour mode
   set24Hour();
-  
+
   //Set WADA bit (Weekday/Date Alarm)
   uint8_t value = readRegister(RV3028_CTRL1);
   if (setWeekdayAlarm_not_Date)
@@ -445,7 +447,7 @@ void RV3028::enableAlarmInterrupt(uint8_t min, uint8_t hour, uint8_t date_or_wee
   alarmTime[0] = DECtoBCD(min);				//minutes
   alarmTime[1] = DECtoBCD(hour);				//hours
   alarmTime[2] = DECtoBCD(date_or_weekday);	//date or weekday
-  
+
   //shift alarm enable bits
   if (mode > 0b111) mode = 0b111; //0 to 7 is valid
   if (mode & 0b001)
@@ -464,11 +466,11 @@ void RV3028::enableAlarmInterrupt(uint8_t min, uint8_t hour, uint8_t date_or_wee
 //Alarm Interrupt Enable AIE
 void RV3028::enableAlarmInterrupt(bool enable)
 {
- //change only AIE in CTRL2
+  //change only AIE in CTRL2
   uint8_t reg = readRegister(RV3028_CTRL2);
   if (enable)
     writeRegister(RV3028_CTRL2, reg | 0b00001000);//set bit 4
-      //reg |= (1 << CTRL2_AIE);
+  //reg |= (1 << CTRL2_AIE);
   else
     writeRegister(RV3028_CTRL2, reg & 0b11110111);//unset bit 4
 }
@@ -489,7 +491,7 @@ void RV3028::clearAlarmFlag()
 uint8_t RV3028::readWeekdayAlarmFlag()
 {
   uint8_t reg = readRegister(RV3028_CTRL1);
-  return (reg & (1 << CTRL1_WADA)); 
+  return (reg & (1 << CTRL1_WADA));
 }
 void RV3028::clearWeekdayAlarmFlag()
 {
@@ -500,59 +502,76 @@ void RV3028::clearWeekdayAlarmFlag()
 
 /*********************************
   Enable the Trickle Charger and set the Trickle Charge series resistor (default is 11k)
-  TCR_1K  =  1kOhm
   TCR_3K  =  3kOhm
-  TCR_6K  =  6kOhm
-  TCR_11K = 11kOhm
+  TCR_5K  =  5kOhm
+  TCR_9K  =  9kOhm
+  TCR_15K = 15kOhm
 *********************************/
-void RV3028::enableTrickleCharge(uint8_t tcr)
+void RV3028::enableTrickleCharge(bool enable)
 {
-  if (tcr > 3) return;
-
   //Read EEPROM Backup Register (0x37)
-  uint8_t EEPROMBackup = readConfigEEPROM_RAMmirror(EEPROM_Backup_Register);
-  //Set TCR Bits (Trickle Charge Resistor)
-  EEPROMBackup &= EEPROMBackup_TCR_CLEAR;		//Clear TCR Bits
-  EEPROMBackup |= tcr << EEPROMBackup_TCR_SHIFT;	//Shift values into EEPROM Backup Register
-  //Write 1 to TCE Bit
-  EEPROMBackup |= 1 << EEPROMBackup_TCE_BIT;
-  //Write EEPROM Backup Register
-  writeConfigEEPROM_RAMmirror(EEPROM_Backup_Register, EEPROMBackup);
+  uint8_t reg = readConfigEEPROM_RAMmirror(EEPROM_Backup_Register);
+  //register availabe ?
+  if (reg == 0xFF) return;
+  
+  if (enable)
+    writeConfigEEPROM_RAMmirror(EEPROM_Backup_Register, reg |= (1 << EEPROMBackup_TCE));//set bit 6
+  else
+    writeConfigEEPROM_RAMmirror(EEPROM_Backup_Register, reg &= ~(1 << EEPROMBackup_TCE));//unset bit 6
 }
 
-void RV3028::disableTrickleCharge()
+void RV3028::setTrickleChargeResistor(uint8_t tcr)
 {
+  //out of range ?
+  if (tcr > 3) tcr = TCR_15K;
+  
   //Read EEPROM Backup Register (0x37)
-  uint8_t EEPROMBackup = readConfigEEPROM_RAMmirror(EEPROM_Backup_Register);
-  //Write 0 to TCE Bit
-  EEPROMBackup &= ~(1 << EEPROMBackup_TCE_BIT);
-  //Write EEPROM Backup Register
-  writeConfigEEPROM_RAMmirror(EEPROM_Backup_Register, EEPROMBackup);
+  uint8_t reg = readConfigEEPROM_RAMmirror(EEPROM_Backup_Register);
+  //register availabe ?
+  if (reg == 0xFF) return;
+  
+  reg &= EEPROMBackup_TCR_CLEAR;    //Clear TCR Bits
+  reg |= tcr << EEPROMBackup_TCR_SHIFT; //Shift values into EEPROM Backup Register
+  writeConfigEEPROM_RAMmirror(EEPROM_Backup_Register, reg);
 }
 
-/*********************************
-  0 = Switchover disabled
-  1 = Direct Switching Mode
-  2 = Standby Mode
-  3 = Level Switching Mode
-*********************************/
-bool RV3028::setBackupSwitchoverMode(uint8_t val)
+bool RV3028::setBackupSwitchoverMode(uint8_t mode)
 {
-  if (val > 3)return false;
-  bool success = true;
-
+  //out of range ?
+  if (mode > 3) mode = BSM_LEVEL;
+  
   //Read EEPROM Backup Register (0x37)
-  uint8_t EEPROMBackup = readConfigEEPROM_RAMmirror(EEPROM_Backup_Register);
-  if (EEPROMBackup == 0xFF) success = false;
-  //Ensure FEDE Bit is set to 1
-  EEPROMBackup |= 1 << EEPROMBackup_FEDE_BIT;
+  uint8_t reg = readConfigEEPROM_RAMmirror(EEPROM_Backup_Register);
+  //register availabe ?
+  if (reg == 0xFF) return false;
+ 
+  //Ensure Fast Edge Detection FEDE Bit is set to 1
+  reg |= 1 << EEPROMBackup_FEDE;
   //Set BSM Bits (Backup Switchover Mode)
-  EEPROMBackup &= EEPROMBackup_BSM_CLEAR;		//Clear BSM Bits of EEPROM Backup Register
-  EEPROMBackup |= val << EEPROMBackup_BSM_SHIFT;	//Shift values into EEPROM Backup Register
-  //Write EEPROM Backup Register
-  if (!writeConfigEEPROM_RAMmirror(EEPROM_Backup_Register, EEPROMBackup)) success = false;
+  reg &= EEPROMBackup_BSM_CLEAR;		//Clear BSM Bits of EEPROM Backup Register
+  reg |= mode << EEPROMBackup_BSM_SHIFT;	//Shift values into EEPROM Backup Register
 
-  return success;
+//To read/write from/to the EEPROM, the user has to disable the Backup Switchover function
+//by setting the BSM field to 00 or 10 (see routine in EEPROM READ/WRITE CONDITIONS)
+  
+  //Write EEPROM Backup Register
+  if (writeConfigEEPROM_RAMmirror(EEPROM_Backup_Register, reg)) return true;
+
+  return false;
+}
+
+void RV3028::enableBackupSwitchoverInterrupt(bool enable)
+{
+  //Read EEPROM Backup Register (0x37)
+  uint8_t reg = readConfigEEPROM_RAMmirror(EEPROM_Backup_Register);
+  //register availabe ?
+  if (reg == 0xFF) return;
+  
+  if (enable)
+    writeConfigEEPROM_RAMmirror(EEPROM_Backup_Register, reg | EEPROMBackup_BSIE);
+  else
+    writeConfigEEPROM_RAMmirror(EEPROM_Backup_Register, reg & ~(1 << EEPROMBackup_BSIE));
+    //Serial.println( ~(1 << EEPROMBackup_BSIE), BIN);
 }
 
 //bocmar
@@ -821,7 +840,7 @@ uint8_t RV3028::readConfigEEPROM_RAMmirror(uint8_t eepromaddr)
 //True if success, false if timeout occured
 bool RV3028::waitforEEPROM()
 {
-  unsigned long timeout = millis() + 500;
+  uint32_t timeout = millis() + 500;
   while ((readRegister(RV3028_STATUS) & 1 << STATUS_EEBUSY) && millis() < timeout);
 
   return millis() < timeout;
