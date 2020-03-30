@@ -111,14 +111,14 @@ For further information about the alarm mode see [*Application Manual p. 68*](ht
 #### Trickle charge functions
 <hr>
 
-###### `enableTrickleCharge(uint8_t tcr = TCR_11K)`
-###### `disableTrickleCharge()`
+###### `void enableTrickleCharge(bool enable)`
+###### `void setTrickleChargeResistor(uint8_t tcr = TCR_3K)`
 
-At "enableTrickleCharge" you can choose the series resistor:  
-TCR_1K for 1kOhm  
-TCR_3K for 3kOhm  
-TCR_6K for 6kOhm  
-TCR_11K for 11kOhm  
+With "setTrickleChargeResistor" you can choose the series resistor:  
+TCR_3K for 3kOhm default
+TCR_5K for 5kOhm
+TCR_9K for 9kOhm
+TCR_11K for 11kOhm
 See [*Application Manual p. 48*](https://www.microcrystal.com/fileadmin/Media/Products/RTC/App.Manual/RV-3028-C7_App-Manual.pdf#page=48) for more information.
 
 <hr>
@@ -126,12 +126,14 @@ See [*Application Manual p. 48*](https://www.microcrystal.com/fileadmin/Media/Pr
 #### Backup Switchover Mode
 <hr>
 
-###### `setBackupSwitchoverMode(mode)`
+###### `bool setBackupSwitchoverMode(uint8_t mode)`
+###### `void enableBackupSwitchoverInterrupt(bool enable)`
 
-0 = Switchover disabled  
-1 = Direct Switching Mode  
-2 = Standby Mode  
-3 = Level Switching Mode  
+BSM Backup Switch Over Mode
+BSM_DISABLED             0b00      //0 = Switchover disabled
+BSM_DIRECT               0b01      //1 = Direct Switching Mode
+BSM_DISABLED2            0b10      //2 = Switchover disabled
+BSM_LEVEL                0b11      //3 = Level Switching Mode
 See [*Application Manual p. 45*](https://www.microcrystal.com/fileadmin/Media/Products/RTC/App.Manual/RV-3028-C7_App-Manual.pdf#page=45) for more information.
 
 License Information
