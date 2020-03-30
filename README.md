@@ -115,10 +115,10 @@ For further information about the alarm mode see [*Application Manual p. 68*](ht
 ###### `void setTrickleChargeResistor(uint8_t tcr = TCR_3K)`
 
 With "setTrickleChargeResistor" you can choose the series resistor
-*TCR_3K for 3kOhm default
-*TCR_5K for 5kOhm
-*TCR_9K for 9kOhm
-*TCR_11K for 11kOhm
+* TCR_3K for 3kOhm default
+* TCR_5K for 5kOhm
+* TCR_9K for 9kOhm
+* TCR_11K for 11kOhm
 
 See [*Application Manual p. 48*](https://www.microcrystal.com/fileadmin/Media/Products/RTC/App.Manual/RV-3028-C7_App-Manual.pdf#page=48) for more information.
 
