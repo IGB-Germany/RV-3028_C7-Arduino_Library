@@ -33,6 +33,11 @@
 
   void clearRegister(uint8_t addr);//clears any register
 
+  Reworked to enable PROGRAMMABLE CLOCK OUTPUT
+  By: IGB
+  Date: 3/31/2020
+
+
 ******************************************************************************/
 
 #pragma once
@@ -67,15 +72,15 @@
 //Periodic Countdown Timer registers
 #define RV3028_TIMERVAL_0				0x0A
 #define RV3028_TIMERVAL_1				0x0B
-#define RV3028_TIMERSTAT_0				0x0C
-#define RV3028_TIMERSTAT_1				0x0D
+#define RV3028_TIMERSTAT_0			0x0C
+#define RV3028_TIMERSTAT_1			0x0D
 
 //Configuration registers
 #define RV3028_STATUS					0x0E
 #define RV3028_CTRL1					0x0F
 #define RV3028_CTRL2					0x10
 #define RV3028_GPBITS					0x11
-#define RV3028_INT_MASK					0x12
+#define RV3028_INT_MASK				0x12
 
 //Eventcontrol/Timestamp registers
 #define RV3028_EVENTCTRL				0x13
@@ -106,18 +111,12 @@
 //EEPROM Memory Control registers
 #define RV3028_EEPROM_ADDR				0x25
 #define RV3028_EEPROM_DATA				0x26
-#define RV3028_EEPROM_CMD				0x27
-
-//ID register
-#define RV3028_ID						0x28
-
-//EEPROM Registers
-#define EEPROM_Clkout_Register			0x35
-#define EEPROM_Backup_Register			0x37
-
+#define RV3028_EEPROM_CMD				  0x27
+#define RV3028_ID                 0x28
+#define RV3028_EEPROM_CLKOUT      0x35
+#define EEPROM_Backup_Register    0x37
 
 //BITS IN IMPORTANT REGISTERS
-
 //Bits in STATUS Register
 #define STATUS_EEBUSY	7
 #define STATUS_CLKF		6
@@ -187,6 +186,23 @@
 #define  BSM_LEVEL                0b11      //3 = Level Switching Mode 
 
 
+//Bits in EEPROM CLKOUT Register 0x35
+#define EEPROM_CLKOUT_CLKOE       7 //CLKOUT enebale bit   
+#define EEPROM_CLKOUT_CLKSY       6 //SYNCHONIZE enebale bit
+//4,5 not implemented      
+#define EEPROM_CLKOUT_PORIE       3 //Power On Reset Interrupt Enable bit   
+#define EEPROM_CLKOUT_FD_SHIFT    0 //CLKOUT Frequency Selection
+
+//FD Frequency Delay CLKOUT
+#define FREQ_32768 0b000
+#define FREQ_8192  0b001
+#define FREQ_1024  0b010
+#define FREQ_64    0b011
+#define FREQ_32    0b100
+#define FREQ_1     0b101
+#define FREQ_PRE   0b110
+#define FREQ_OFF   0b111
+
 #define TIME_ARRAY_LENGTH 7 // Total number of writable values in device
 
 enum time_order {
@@ -233,7 +249,6 @@ class RV3028
     uint8_t getMonth();
     uint16_t getYear();
 
-
     bool is12Hour(); //Returns true if 12hour bit is set
     bool isPM(); //Returns true if is12Hour and PM bit is set
     void set12Hour();
@@ -250,20 +265,27 @@ class RV3028
     uint8_t readWeekdayAlarmFlag();
     void clearWeekdayAlarmFlag();
 
-    //changed
+    void enableAlarmInterrupt(bool enable);//AIE in CTRL2
+
+    //Tricklecharge
     void enableTrickleCharge(bool enable); //TCE in EEPROM BCKUP; default diabled
     void setTrickleChargeResistor(uint8_t tcr = TCR_3K);//default 3k
-
+    
+    //Backup Switchcover
     bool setBackupSwitchoverMode(uint8_t mode);
     void enableBackupSwitchoverInterrupt(bool enable);//BSIE in EEPROM_BACKUP
-    
-    //changed
+
+    //Status register
     uint8_t readStatus();//Reads the complete status register
     void clearStatus();//clears the complete status register
 
-    void enableAlarmInterrupt(bool enable);//AIE in CTRL2
+    //CLOCK OUTPUT
+    void enableClockOutput(bool enable);//CLKOE in EEPROM CLKOUT REGISTER 0x35 
+    void setClockOutputFrequency(uint8_t fd); //FD 000-111 in EEPROM CLKOUT REGISTER 0x35
+    void enableClockOutputSynchronize(bool enable);//CLKSY in EEPROM CLKOUT REGISTER 0x35
+    //POWER ON RESET INTERRUPT FUNCTION
+    void enablePowerOnResetInterrupt(bool enable);//PORIE in EEPROM CLKOUT REGISTER 0x35
 
-    //New
     //PERIODIC TIMER/COUNTDOWN
     void      enableTimer(bool enable);//TE in CTRL1
     void      enableTimerRepeat(bool enable);//TRPT in CTRL1
@@ -284,6 +306,7 @@ class RV3028
     void    enableClockUpdateInterrupt(bool enable);//CUIE in Clock Interrupt Mask 12h
 
 
+    //Helper functions
     //Values in RTC are stored in Binary Coded Decimal. These functions convert to/from Decimal
     uint8_t BCDtoDEC(uint8_t val);
     uint8_t DECtoBCD(uint8_t val);

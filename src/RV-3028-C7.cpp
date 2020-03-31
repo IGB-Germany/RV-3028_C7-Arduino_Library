@@ -500,6 +500,65 @@ void RV3028::clearWeekdayAlarmFlag()
   writeRegister(RV3028_CTRL1, reg & 0b11011111);//unset bit 6
 }
 
+void RV3028::enableClockOutput(bool enable)
+{
+  //Read EEPROM CLKOUT REGISTER 0x35
+  uint8_t reg = readConfigEEPROM_RAMmirror(RV3028_EEPROM_CLKOUT);
+  //register availabe ?
+  if (reg == 0xFF) return;
+
+  if (enable)
+    writeConfigEEPROM_RAMmirror(RV3028_EEPROM_CLKOUT, reg |= (1 << EEPROM_CLKOUT_CLKOE));//set bit 7
+  else
+    writeConfigEEPROM_RAMmirror(RV3028_EEPROM_CLKOUT, reg &= ~(1 << EEPROM_CLKOUT_CLKOE));//unset bit 7
+}
+
+void RV3028::setClockOutputFrequency(uint8_t fd)
+{
+  //FD 000-111 in EEPROM CLKOUT REGISTER 0x35
+  //out of range ?
+  if (fd > 0b111) fd = FREQ_32768;
+
+  //Read EEPROM CLKOUT REGISTER 0x35
+  uint8_t reg = readConfigEEPROM_RAMmirror(RV3028_EEPROM_CLKOUT);
+  //register availabe ?
+  if (reg == 0xFF)
+  {
+
+    return;
+  }
+
+  reg = reg & 0b11111000;//Clear bits
+  reg = reg | fd;//Write FD bits
+  writeConfigEEPROM_RAMmirror(RV3028_EEPROM_CLKOUT, reg);
+}
+
+void RV3028::enableClockOutputSynchronize(bool enable)
+{
+  //Read EEPROM CLKOUT REGISTER 0x35
+  uint8_t reg = readConfigEEPROM_RAMmirror(RV3028_EEPROM_CLKOUT);
+  //register availabe ?
+  if (reg == 0xFF) return;
+
+  if (enable)
+    writeConfigEEPROM_RAMmirror(RV3028_EEPROM_CLKOUT, reg |= (1 << EEPROM_CLKOUT_CLKSY));//set bit
+  else
+    writeConfigEEPROM_RAMmirror(RV3028_EEPROM_CLKOUT, reg &= ~(1 << EEPROM_CLKOUT_CLKSY));//unset bit
+}
+
+void RV3028::enablePowerOnResetInterrupt(bool enable)
+{
+  //Read EEPROM CLKOUT REGISTER 0x35
+  uint8_t reg = readConfigEEPROM_RAMmirror(RV3028_EEPROM_CLKOUT);
+  //register availabe ?
+  if (reg == 0xFF) return;
+
+  if (enable)
+    writeConfigEEPROM_RAMmirror(RV3028_EEPROM_CLKOUT, reg |= (1 << EEPROM_CLKOUT_PORIE));//set bit
+  else
+    writeConfigEEPROM_RAMmirror(RV3028_EEPROM_CLKOUT, reg &= ~(1 << EEPROM_CLKOUT_PORIE));//unset bit
+}
+
 /*********************************
   Enable the Trickle Charger and set the Trickle Charge series resistor (default is 11k)
   TCR_3K  =  3kOhm
@@ -513,7 +572,7 @@ void RV3028::enableTrickleCharge(bool enable)
   uint8_t reg = readConfigEEPROM_RAMmirror(EEPROM_Backup_Register);
   //register availabe ?
   if (reg == 0xFF) return;
-  
+
   if (enable)
     writeConfigEEPROM_RAMmirror(EEPROM_Backup_Register, reg |= (1 << EEPROMBackup_TCE));//set bit 6
   else
@@ -524,12 +583,12 @@ void RV3028::setTrickleChargeResistor(uint8_t tcr)
 {
   //out of range ?
   if (tcr > 3) tcr = TCR_15K;
-  
+
   //Read EEPROM Backup Register (0x37)
   uint8_t reg = readConfigEEPROM_RAMmirror(EEPROM_Backup_Register);
   //register availabe ?
   if (reg == 0xFF) return;
-  
+
   reg &= EEPROMBackup_TCR_CLEAR;    //Clear TCR Bits
   reg |= tcr << EEPROMBackup_TCR_SHIFT; //Shift values into EEPROM Backup Register
   writeConfigEEPROM_RAMmirror(EEPROM_Backup_Register, reg);
@@ -539,21 +598,21 @@ bool RV3028::setBackupSwitchoverMode(uint8_t mode)
 {
   //out of range ?
   if (mode > 3) mode = BSM_LEVEL;
-  
+
   //Read EEPROM Backup Register (0x37)
   uint8_t reg = readConfigEEPROM_RAMmirror(EEPROM_Backup_Register);
   //register availabe ?
   if (reg == 0xFF) return false;
- 
+
   //Ensure Fast Edge Detection FEDE Bit is set to 1
   reg |= 1 << EEPROMBackup_FEDE;
   //Set BSM Bits (Backup Switchover Mode)
   reg &= EEPROMBackup_BSM_CLEAR;		//Clear BSM Bits of EEPROM Backup Register
   reg |= mode << EEPROMBackup_BSM_SHIFT;	//Shift values into EEPROM Backup Register
 
-//To read/write from/to the EEPROM, the user has to disable the Backup Switchover function
-//by setting the BSM field to 00 or 10 (see routine in EEPROM READ/WRITE CONDITIONS)
-  
+  //To read/write from/to the EEPROM, the user has to disable the Backup Switchover function
+  //by setting the BSM field to 00 or 10 (see routine in EEPROM READ/WRITE CONDITIONS)
+
   //Write EEPROM Backup Register
   if (writeConfigEEPROM_RAMmirror(EEPROM_Backup_Register, reg)) return true;
 
@@ -566,12 +625,12 @@ void RV3028::enableBackupSwitchoverInterrupt(bool enable)
   uint8_t reg = readConfigEEPROM_RAMmirror(EEPROM_Backup_Register);
   //register availabe ?
   if (reg == 0xFF) return;
-  
+
   if (enable)
     writeConfigEEPROM_RAMmirror(EEPROM_Backup_Register, reg | EEPROMBackup_BSIE);
   else
     writeConfigEEPROM_RAMmirror(EEPROM_Backup_Register, reg & ~(1 << EEPROMBackup_BSIE));
-    //Serial.println( ~(1 << EEPROMBackup_BSIE), BIN);
+  //Serial.println( ~(1 << EEPROMBackup_BSIE), BIN);
 }
 
 //bocmar
