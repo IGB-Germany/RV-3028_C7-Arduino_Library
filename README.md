@@ -107,6 +107,7 @@ If you want to set a weekday alarm (setWeekdayAlarm_not_Date = true), set 'date_
 For further information about the alarm mode see [*Application Manual p. 68*](https://www.microcrystal.com/fileadmin/Media/Products/RTC/App.Manual/RV-3028-C7_App-Manual.pdf#page=68).
 
 <hr>
+
 #### Trickle Charge Function
 <hr>
 
@@ -122,6 +123,7 @@ With "setTrickleChargeResistor" you can choose the series resistor
 See [*Application Manual p. 48*](https://www.microcrystal.com/fileadmin/Media/Products/RTC/App.Manual/RV-3028-C7_App-Manual.pdf#page=48) for more information.
 
 <hr>
+
 #### Backup Switchover Mode
 <hr>
 
@@ -137,6 +139,7 @@ BSM Backup Switch Over Mode
 See [*Application Manual p. 45*](https://www.microcrystal.com/fileadmin/Media/Products/RTC/App.Manual/RV-3028-C7_App-Manual.pdf#page=45) for more information.
 
 <hr>
+
 #### Programmable Clock Output
 <hr>
 
@@ -150,6 +153,7 @@ is done in the FD field
 See [*Application Manual p. 48*](https://www.microcrystal.com/fileadmin/Media/Products/RTC/App.Manual/RV-3028-C7_App-Manual.pdf#page=45) for more information.
 
 <hr>
+
 #### POWER ON RESET INTERRUPT FUNCTION
 <hr>
 
