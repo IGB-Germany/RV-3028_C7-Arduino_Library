@@ -140,19 +140,23 @@ See [*Application Manual p. 45*](https://www.microcrystal.com/fileadmin/Media/Pr
 
 #### Programmable Clock Output
 <hr>
+
 Six different frequencies or the countdown timer interrupt signal can be output on CLKOUT pin, the signal selection
-is done in the FD field (EEPROM 35h)
+is done in the FD field
+
 ###### `void enableClockOutput(bool enable)`
 ###### `void setClockOutputFrequency(uint8_t fd)`
-###### ` void enableClockOutputSynchronize(bool enable)`
+###### `void enableClockOutputSynchronize(bool enable)`
 
 See [*Application Manual p. 48*](https://www.microcrystal.com/fileadmin/Media/Products/RTC/App.Manual/RV-3028-C7_App-Manual.pdf#page=45) for more information.
 
 
 #### POWER ON RESET INTERRUPT FUNCTION
 <hr>
+
 When voltage drops below VPOR (VDD < VPOR) and the PORIE bit is set 
 the ~INT pin goes to low level
+
 ###### `void enablePowerOnResetInterrupt(bool enable)`
 
 See [*Application Manual p. 77*](https://www.microcrystal.com/fileadmin/Media/Products/RTC/App.Manual/RV-3028-C7_App-Manual.pdf#page=45) for more information.
