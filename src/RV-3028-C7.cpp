@@ -392,8 +392,7 @@ void RV3028::set24Hour()
   }
 }
 
-//ATTENTION: Real Time and UNIX Time are INDEPENDENT!
-bool RV3028::setUNIX(uint32_t value)
+bool RV3028::setUnixCounter(uint32_t value)
 {
   uint8_t unix_reg[4];
   unix_reg[0] = value;
@@ -404,8 +403,7 @@ bool RV3028::setUNIX(uint32_t value)
   return writeMultipleRegisters(RV3028_UNIX_TIME0, unix_reg, 4);
 }
 
-//ATTENTION: Real Time and UNIX Time are INDEPENDENT!
-uint32_t RV3028::getUNIX()
+uint32_t RV3028::getUnixCounter()
 {
   uint8_t unix_reg[4];
   readMultipleRegisters(RV3028_UNIX_TIME0, unix_reg, 4);

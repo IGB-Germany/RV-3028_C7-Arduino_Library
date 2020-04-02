@@ -88,22 +88,13 @@ void setup()
     rtc.enableTimer(false);
     rtc.clearStatus();//clears the complete status register
 
-    Serial.print(F("STATUS:\t\t"));
-    Serial.println(rtc.readRegister(RV3028_STATUS), BIN);
-    Serial.print(F("CONTROL1:\t"));
-    Serial.println(rtc.readRegister(RV3028_CTRL1), BIN);
-    Serial.print(F("CONTROL2:\t"));
-    Serial.println(rtc.readRegister(RV3028_CTRL2), BIN);
-    Serial.print(F("EEPROM Backup:\t"));
-    Serial.println(rtc.readRegister(EEPROM_Backup_Register), BIN);
-
     serialPintHelp();
+    serialPrintRegisters();
   }
 }
 
 void loop()
 {
-
   //PRINT TIME
   if (rtc.updateTime() == false) //Updates the time variables from RTC
   {
@@ -112,8 +103,6 @@ void loop()
   else
   {
 
-    //Serial.print(F("Status:\t\t"));
-    //Serial.println(rtc.readRegister(RV3028_STATUS), BIN);
     /*
         if (rtc.getUpdateFlag())
         {
@@ -127,16 +116,7 @@ void loop()
     //print only every second
     if (currentTime != previousTime)
     {
-      //Serial.println(currentTime + "     \'s\' = set compiler time");
       Serial.println(currentTime);
-      Serial.print(F("STATUS:\t\t"));
-      Serial.println(rtc.readRegister(RV3028_STATUS), BIN);
-      Serial.print(F("CONTROL1:\t"));
-      Serial.println(rtc.readRegister(RV3028_CTRL1), BIN);
-      Serial.print(F("CONTROL2:\t"));
-      Serial.println(rtc.readRegister(RV3028_CTRL2), BIN);
-      Serial.print(F("EEPROM Backup:\t"));
-      Serial.println(rtc.readRegister(EEPROM_Backup_Register), BIN);
       //Save last time
       previousTime = currentTime;
     }
@@ -151,11 +131,8 @@ void loop()
       delay(5000);
       rtc.disableAlarmInterrupt();  //Only disables the interrupt
       rtc.clearAlarmFlag();         //disables the alarm flag
-      Serial.print(F("Status:\t"));
-      Serial.println(rtc.readRegister(RV3028_STATUS), BIN);
     }
   */
-
 
   //Set Time
   if (Serial.available())
@@ -212,8 +189,28 @@ void loop()
         }
         break;
 
+      case 'r':
+        //Use this to print registers
+        serialPrintRegisters();
+        break;
+
+      case '?':
+        //Use this to print help for possible commands
+        serialPintHelp();
+        break;
     }
   }
+}
+void serialPrintRegisters()
+{
+  Serial.print(F("STATUS:\t\t"));
+  Serial.println(rtc.readRegister(RV3028_STATUS), BIN);
+  Serial.print(F("CONTROL1:\t"));
+  Serial.println(rtc.readRegister(RV3028_CTRL1), BIN);
+  Serial.print(F("CONTROL2:\t"));
+  Serial.println(rtc.readRegister(RV3028_CTRL2), BIN);
+  Serial.print(F("EEPROM Backup:\t"));
+  Serial.println(rtc.readRegister(EEPROM_Backup_Register), BIN);
 }
 
 void serialPrintError()

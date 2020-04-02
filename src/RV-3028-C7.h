@@ -17,12 +17,11 @@
   Distributed as-is; no warranty is given.
 
 
-  Reworked to enable periodic countdown
-  By: Marcus Bockting
+  Reworked to enable PERIODIC COUNTDOWN
+  By: IGB
   Date: 2/18/2020
 
-  New: set periodic timer (countdown)
-  void enableTimer(true) //Enable
+  New: void enableTimer(true) //Enable
   uint16_t  getTimerCurrent() //Actual value of countdown
   and some help functions..
 
@@ -36,6 +35,15 @@
   Reworked to enable PROGRAMMABLE CLOCK OUTPUT
   By: IGB
   Date: 3/31/2020
+
+
+//POSSIBLE ENHANCEMENTS :
+//ENHANCEMENT: Periodic Time Update Interrupt
+//ENHANCEMENT: Battery Interrupt / check battery voltage
+//to be consistent with Time.h library
+//adjustTime();
+//getTime() = getUNIX() ?
+//clarify setAlarmInterrupt() -> setAlarm()
 
 
 ******************************************************************************/
@@ -254,8 +262,11 @@ class RV3028
     void set12Hour();
     void set24Hour();
 
-    bool setUNIX(uint32_t value);//Set the UNIX Time (Real Time and UNIX Time are INDEPENDENT!)
-    uint32_t getUNIX();
+    //UNIX Time counter is a 32-bit counter, unsigned integer
+    //rolls over to 00000000h when reaching the value FFFFFFFFh
+    //counter source clock is the digitally offset compensated 1 Hz tick
+    bool setUnixCounter(uint32_t value);
+    uint32_t getUnixCounter();
 
     void enableAlarmInterrupt(uint8_t min, uint8_t hour, uint8_t date_or_weekday, bool setWeekdayAlarm_not_Date, uint8_t mode);
 
@@ -271,7 +282,7 @@ class RV3028
     void enableTrickleCharge(bool enable); //TCE in EEPROM BCKUP; default diabled
     void setTrickleChargeResistor(uint8_t tcr = TCR_3K);//default 3k
     
-    //Backup Switchcover
+    //Backup Switchover
     bool setBackupSwitchoverMode(uint8_t mode);
     void enableBackupSwitchoverInterrupt(bool enable);//BSIE in EEPROM_BACKUP
 
@@ -324,9 +335,3 @@ class RV3028
     uint8_t _time[TIME_ARRAY_LENGTH];
     TwoWire *_i2cPort;
 };
-
-//POSSIBLE ENHANCEMENTS :
-//ENHANCEMENT: Countdown Timer / Countdown Interrupt
-//ENHANCEMENT: Periodic Time Update Interrupt
-//ENHANCEMENT: Battery Interrupt / check battery voltage
-//ENHANCEMENT: Clock Output
