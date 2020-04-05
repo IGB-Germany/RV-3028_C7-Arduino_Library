@@ -28,10 +28,10 @@ RV3028 rtc;
 //The below variables control what the date will be set to
 uint8_t seconds  = 0;
 uint8_t minutes  = 0;
-const uint8_t hour    = 0;
-const uint8_t day     = 0;
-const uint8_t date    = 1;
-const uint8_t month   = 1;
+const uint8_t hour    = 10;
+const uint8_t day     = 5;// 0 = Sunday, 6 = Saturday
+const uint8_t date    = 3;
+const uint8_t month   = 4;
 const uint16_t year   = 2020;
 
 //The below variables control what the alarm will be set to
